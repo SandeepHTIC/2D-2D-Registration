@@ -4,7 +4,6 @@ project(PDProject)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 # GDCM Configuration
 find_package(GDCM REQUIRED)
 include_directories(${GDCM_INCLUDE_DIRS})
