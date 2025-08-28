@@ -12,6 +12,91 @@ static void appLog(const std::string& tag, const std::string& path) {
     // Silent logging - no output
 }
 
+// Helper to convert quaternion to rotation matrix
+static Mat quat2rotm(const Vec4d& q) {
+    double w = -q[3]; // In matlab code, it is -q(4)
+    double x = q[0];
+    double y = q[1];
+    double z = q[2];
+
+    Mat R(3, 3, CV_64F);
+    R.at<double>(0, 0) = 1 - 2 * (y * y + z * z);
+    R.at<double>(0, 1) = 2 * (x * y - w * z);
+    R.at<double>(0, 2) = 2 * (x * z + w * y);
+
+    R.at<double>(1, 0) = 2 * (x * y + w * z);
+    R.at<double>(1, 1) = 1 - 2 * (x * x + z * z);
+    R.at<double>(1, 2) = 2 * (y * z - w * x);
+
+    R.at<double>(2, 0) = 2 * (x * z - w * y);
+    R.at<double>(2, 1) = 2 * (y * z + w * x);
+    R.at<double>(2, 2) = 1 - 2 * (x * x + y * y);
+
+    return R;
+}
+
+RefConversionResult Ref_conversion(
+    const Mat& C2R, const Mat& C2D, const Mat& W, const Mat& Dpts) {
+
+    // Reference marker
+    Vec3d trans(C2R.at<double>(0), C2R.at<double>(1), C2R.at<double>(2));
+    Vec4d q(C2R.at<double>(3), C2R.at<double>(4), C2R.at<double>(5), C2R.at<double>(6));
+    Mat rot = quat2rotm(q);
+    Mat cam2ref = Mat::eye(4, 4, CV_64F);
+    rot.copyTo(cam2ref(Rect(0, 0, 3, 3)));
+    cam2ref.at<double>(0, 3) = trans[0];
+    cam2ref.at<double>(1, 3) = trans[1];
+    cam2ref.at<double>(2, 3) = trans[2];
+
+    // Detector Marker
+    Vec3d trans2(C2D.at<double>(0), C2D.at<double>(1), C2D.at<double>(2));
+    Vec4d q2(C2D.at<double>(3), C2D.at<double>(4), C2D.at<double>(5), C2D.at<double>(6));
+    Mat rot2 = quat2rotm(q2);
+    Mat cam2DD = Mat::eye(4, 4, CV_64F);
+    rot2.copyTo(cam2DD(Rect(0, 0, 3, 3)));
+    cam2DD.at<double>(0, 3) = trans2[0];
+    cam2DD.at<double>(1, 3) = trans2[1];
+    cam2DD.at<double>(2, 3) = trans2[2];
+
+    Mat ref2cam = cam2ref.inv();
+    Mat ref2DD = ref2cam * cam2DD;
+
+    Mat W_h(4, W.rows, CV_64F);
+    for (int i = 0; i < W.rows; ++i) {
+        W_h.at<double>(0, i) = W.at<double>(i, 0);
+        W_h.at<double>(1, i) = W.at<double>(i, 1);
+        W_h.at<double>(2, i) = W.at<double>(i, 2);
+        W_h.at<double>(3, i) = 1.0;
+    }
+
+    Mat ref_DD = ref2DD * W_h;
+    RefConversionResult res;
+    res.Cmm_pts = Mat(W.rows, 3, CV_64F);
+    for (int i = 0; i < W.rows; ++i) {
+        res.Cmm_pts.at<double>(i, 0) = ref_DD.at<double>(0, i);
+        res.Cmm_pts.at<double>(i, 1) = ref_DD.at<double>(1, i);
+        res.Cmm_pts.at<double>(i, 2) = ref_DD.at<double>(2, i);
+    }
+
+    Mat Dpts_h(4, Dpts.rows, CV_64F);
+    for (int i = 0; i < Dpts.rows; ++i) {
+        Dpts_h.at<double>(0, i) = Dpts.at<double>(i, 0);
+        Dpts_h.at<double>(1, i) = Dpts.at<double>(i, 1);
+        Dpts_h.at<double>(2, i) = Dpts.at<double>(i, 2);
+        Dpts_h.at<double>(3, i) = 1.0;
+    }
+
+    Mat ref_dist_pts_h = ref2DD * Dpts_h;
+    res.ref_dist_pts = Mat(Dpts.rows, 3, CV_64F);
+    for (int i = 0; i < Dpts.rows; ++i) {
+        res.ref_dist_pts.at<double>(i, 0) = ref_dist_pts_h.at<double>(0, i);
+        res.ref_dist_pts.at<double>(i, 1) = ref_dist_pts_h.at<double>(1, i);
+        res.ref_dist_pts.at<double>(i, 2) = ref_dist_pts_h.at<double>(2, i);
+    }
+
+    return res;
+}
+
 // --- Load ICP plate fiducials from file ---
 static void load_icpPlatFid(cv::Mat& icpPlatFid, const std::string& path_d) {
     std::vector<std::string> possiblePaths = {

@@ -36,4 +36,18 @@ CalibrationResult Calibration(
     int rewarp
 );
 
+RefConversionResult Ref_conversion(
+    const cv::Mat& C2R,
+    const cv::Mat& C2D,
+    const cv::Mat& W,
+    const cv::Mat& Dpts
+);
+
+cv::Mat estimateCameraMatrix(
+    const cv::Mat& imagePoints,
+    const cv::Mat& worldPoints,
+    cv::Mat& reprojectionErrors
+);
+
+
 #endif // CALIBRATION_H
