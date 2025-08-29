@@ -1,0 +1,3 @@
+# Ignore MATLAB directory and Zencoder metadata
+/Matlab code/
+/.zencoder/

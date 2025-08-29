@@ -1,1 +1,0 @@
-Position: LP - Error: Failed to create point correspondence

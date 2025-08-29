@@ -345,7 +345,7 @@ static vector<LabeledPoint> icp_stream(
     for (int lbl=1; lbl<=9; ++lbl) {
         int idx = bestIdxPerLabel[lbl];
         if (idx >= 0) {
-            plate1Final.push_back({(float)p1[idx].x, (float)p1[idx].y, lbl});
+            plate1Final.push_back({p1[idx].x, p1[idx].y, lbl});
         }
     }
 
@@ -388,7 +388,7 @@ static vector<LabeledPoint> icp_stream(
         for (int r=0;r<8;++r) {
             double refA = ref2[r][bestRef2];
             if (a2f[i] > refA-3 && a2f[i] < refA+3) {
-                plate2Final.push_back({static_cast<float>(p2f[i].x), static_cast<float>(p2f[i].y), P2idx[bestRef2][r]});
+                plate2Final.push_back({p2f[i].x, p2f[i].y, P2idx[bestRef2][r]});
                 break;
             }
         }

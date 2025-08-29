@@ -34,6 +34,10 @@ set(SOURCES
     src/plate12indexing.cpp
     src/crop_image.cpp
     src/Calibration.cpp
+    src/ref_conversion.cpp
+    src/estimate_camera_matrix.cpp
+    src/decompose_camera.cpp
+    src/registration_check.cpp
 )
 
 

@@ -1,53 +1,69 @@
 #ifndef CALIBRATION_H
 #define CALIBRATION_H
 
+#include <opencv2/opencv.hpp>
+#include <Eigen/Dense>
 #include <string>
 #include <vector>
-#include <opencv2/core.hpp>
+#include <fstream>
+#include <iostream>
+#include <filesystem>
 
 struct CalibrationResult {
-    cv::Mat resultMatrix;    // 4x4 homogeneous transformation matrix
-    double RPE;              // Registration Projection Error
+    Eigen::Matrix4d Result_Matrix;
+    double RPE;
+    bool success;
+    std::string error_message;
 };
 
-/**
- * @brief Main calibration function that estimates camera projection matrix
- * 
- * @param position      Camera position identifier (e.g., "AP", "LAT")
- * @param C2R          Camera-to-reference transformation (7-element vector: [tx,ty,tz,qx,qy,qz,qw])
- * @param C2D          Camera-to-detector transformation (7-element vector: [tx,ty,tz,qx,qy,qz,qw])
- * @param W            World coordinate points (Nx3 matrix)
- * @param js           Joint space parameters (currently unused)
- * @param Dpts         Detector points (Mx3 matrix)
- * @param r            Image height for coordinate system conversion
- * @param path_d       Base path for data files and outputs
- * @param rewarp       Flag for rewarping mode (0=normal, 1=rewarp)
- * @return CalibrationResult containing the 4x4 transformation matrix and RPE
- */
-CalibrationResult Calibration(
-    const std::string& position,
-    const cv::Mat& C2R,
-    const cv::Mat& C2D,
-    const cv::Mat& W,
-    const cv::Mat& js,
-    const cv::Mat& Dpts,
-    double r,
-    const std::string& path_d,
-    int rewarp
-);
+struct TransformationData {
+    double tx, ty, tz;
+    std::vector<double> rotation; // quaternion [x, y, z, w]
+};
 
-RefConversionResult Ref_conversion(
-    const cv::Mat& C2R,
-    const cv::Mat& C2D,
-    const cv::Mat& W,
-    const cv::Mat& Dpts
-);
+class Calibration {
+public:
+    // Main calibration function (matches maindcm.cpp call signature)
+    static CalibrationResult calibrate(
+        const std::string& position,
+        const TransformationData& C2R,
+        const TransformationData& C2D,
+        const Eigen::MatrixXd& W,
+        const Eigen::MatrixXd& Dpts,
+        const std::string& path_d,
+        int rewarp = 0
+    );
 
-cv::Mat estimateCameraMatrix(
-    const cv::Mat& imagePoints,
-    const cv::Mat& worldPoints,
-    cv::Mat& reprojectionErrors
-);
+private:
 
+    // moved to free-function helpers (see include/*.h)
+
+    // Utility functions
+    static Eigen::Matrix3d quaternionToRotationMatrix(const std::vector<double>& q);
+    static std::pair<Eigen::MatrixXd, Eigen::Matrix3d> normalise2dpts(const Eigen::MatrixXd& pts);
+    static std::pair<Eigen::Matrix3d, Eigen::Matrix3d> rq3(const Eigen::Matrix3d& A);
+    static Eigen::Matrix<double, 3, 4> refineProjectionMatrix(
+        const Eigen::Matrix<double, 3, 4>& P_init,
+        const Eigen::MatrixXd& imagePoints_homogeneous,
+        const Eigen::MatrixXd& worldPoints);
+    static Eigen::MatrixXd readMatrix(const std::string& filename);
+    static void writeMatrix(const std::string& filename, const Eigen::MatrixXd& matrix, 
+                           const std::string& delimiter = " ", int precision = 6);
+    static void appendMatrix(const std::string& filename, const Eigen::MatrixXd& matrix, 
+                            const std::string& delimiter = " ", int precision = 6);
+    static bool fileExists(const std::string& filename);
+    static void writeErrorLog(const std::string& message, const std::string& path_d, 
+                             const std::string& position);
+    static void appLog(const std::string& operation, const std::string& path_d);
+    
+    // Image height determination functions
+    static double getImageHeightFromCroppedImage(const std::string& path_d);
+    static double getImageHeightFromBlob(const std::string& position, const std::string& path_d);
+    static double getImageHeight(const std::string& position, const std::string& path_d, 
+                                const Eigen::MatrixXd& icpPlatFid);
+    
+    // Load ICP fiducial data from files created by maindcm.cpp
+    static Eigen::MatrixXd loadIcpPlatFid(const std::string& path_d);
+};
 
 #endif // CALIBRATION_H

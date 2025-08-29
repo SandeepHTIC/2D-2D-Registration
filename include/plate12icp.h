@@ -7,7 +7,7 @@
 // Struct to hold a labeled 2D point
 // Now using float for x and y to match cv::Point2f
 struct LabeledPoint {
-    float x, y;
+    double x, y; // use double for better precision like MATLAB
     int label;
 };
 
@@ -20,8 +20,11 @@ struct PlateFiducials {
 };
 
 // Function declaration for ICP-based plate fiducial extraction
+// Note: pass precise centers and radii to avoid precision loss from raster mask
 PlateFiducials plate12icp(const cv::Mat& blob_image,
                           const cv::Point2f& Centre,
-                          const std::vector<cv::Point2f>& icpFid);
+                          const std::vector<cv::Point2f>& icpFid,
+                          const std::vector<cv::Point2f>& centers,
+                          const std::vector<float>& radii);
 
 #endif // PLATE12ICP_H

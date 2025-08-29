@@ -20,25 +20,19 @@ static float angleBetween(const Point2f& a, const Point2f& b) {
 
 PlateFiducials plate12icp(const cv::Mat& blob_image,
                           const cv::Point2f& Centre,
-                          const std::vector<cv::Point2f>& icpFid)
+                          const std::vector<cv::Point2f>& icpFid,
+                          const std::vector<cv::Point2f>& centers,
+                          const std::vector<float>& radii)
 {
     PlateFiducials output;
     vector<Point2f> allCentroids;
     vector<float> allAreas;
 
-    vector<vector<Point>> contours;
-    findContours(blob_image.clone(), contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-
-    for (auto& cnt : contours) {
-        double area = contourArea(cnt);
-        if (area >= 5.0) {
-            Moments m = moments(cnt);
-            if (m.m00 != 0) {
-                Point2f c(m.m10 / m.m00, m.m01 / m.m00);
-                allCentroids.push_back(c);
-                allAreas.push_back(static_cast<float>(area));
-            }
-        }
+    // Use precise subpixel centers and measured radii from blob detector
+    allCentroids = centers;
+    allAreas.reserve(radii.size());
+    for (float r : radii) {
+        allAreas.push_back(static_cast<float>(CV_PI * r * r));
     }
 
     int N = static_cast<int>(allCentroids.size());
