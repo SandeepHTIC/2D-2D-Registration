@@ -18,7 +18,7 @@ struct CalibrationResult {
 
 struct TransformationData {
     double tx, ty, tz;
-    std::vector<double> rotation; // quaternion [x, y, z, w]
+    std::vector<double> rotation; // quaternion [x, y, z, w] as loaded from JSON; converted to [w,x,y,z] at use site
 };
 
 class Calibration {
@@ -36,7 +36,24 @@ public:
 
 private:
 
-    // moved to free-function helpers (see include/*.h)
+    static std::pair<Eigen::MatrixXd, Eigen::MatrixXd> refConversion(
+        const std::string& position,
+        const Eigen::MatrixXd& W,
+        const Eigen::MatrixXd& distpts,
+        const TransformationData& C2R,
+        const TransformationData& C2D,
+        const std::string& path_d
+    );
+
+    static std::pair<Eigen::Matrix<double, 3, 4>, std::vector<double>> estimateCameraMatrix(
+        const Eigen::MatrixXd& imagePoints,
+        const Eigen::MatrixXd& worldPoints
+    );
+
+    static std::tuple<Eigen::Matrix3d, Eigen::Matrix3d, Eigen::Vector3d, Eigen::Vector2d, Eigen::Vector3d> 
+    decomposeCamera(const Eigen::Matrix<double, 3, 4>& P);
+
+
 
     // Utility functions
     static Eigen::Matrix3d quaternionToRotationMatrix(const std::vector<double>& q);

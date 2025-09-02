@@ -23,14 +23,14 @@ std::vector<cv::KeyPoint> detectBlobs(const cv::Mat& input, float minInertiaRati
     params.maxThreshold = 255;
     params.thresholdStep = 4;
     params.filterByArea = true;
-    params.minArea = 35;   
-    params.maxArea = 900;  
+    params.minArea = 20;   
+    params.maxArea = 800;  
     params.filterByCircularity = true;
     params.minCircularity = 0.8;
     params.filterByInertia = true;
     params.minInertiaRatio = minInertiaRatio;
     params.filterByConvexity = true;
-    params.minConvexity = 0.7;
+    params.minConvexity = 0.9;
 
     cv::Ptr<cv::SimpleBlobDetector> detector = cv::SimpleBlobDetector::create(params);
     std::vector<cv::KeyPoint> keypoints;

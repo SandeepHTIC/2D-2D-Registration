@@ -8,8 +8,9 @@
 #include <iomanip>
 #include <string>
 #include <json.hpp>
+#include "JsonCheck.h"
 #include <filesystem>
-
+#include <chrono>
 #include "blob_detection.h"
 #include "Center_detection.h"
 #include "icp_angle.h"
@@ -179,7 +180,20 @@ CalibrationResult performCalibrationFromJSON(const std::string& jsonPath, const 
 
 int main() {
     std::string output_dir = ".";
-    std::string jsonPath = "C:\\Users\\Sandeep\\OneDrive\\Desktop\\HTIC\\SCN 7\\inputLP.json";;
+    std::string jsonPath;
+
+    std::cout << "Enter JSON file path: ";
+    std::getline(std::cin, jsonPath);  // safer than std::cin >> jsonPath
+
+    std::cout << "You entered: " << jsonPath << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // --- Code to measure ---
+    for (volatile int i = 0; i < 100000000; ++i) {}  // Dummy workload
+    // -----------------------
+
+   
 
     std::ifstream jsonFile(jsonPath);
     if (!jsonFile) {
@@ -191,6 +205,16 @@ int main() {
     jsonFile >> input_SSR;
     std::string dicomPath = input_SSR["Image"];
     std::string position = input_SSR["Type"];
+
+    // MATLAB-equivalent JSON validation and folder prep
+    JsonCheckResult jc = json_check_cpp(input_SSR, position, output_dir);
+    if (!jc.ok) {
+        std::cerr << "JSON validation failed: " << jc.errorMessage << std::endl;
+        return 1;
+    }
+    // Use validated/normalized fields
+    position = jc.position;
+    dicomPath = jc.imagePath;
 
     cv::Mat img8u;
     try {
@@ -470,52 +494,64 @@ CalibrationResult calib = Calibration::calibrate(
 std::cout << "Calibration Error: " << calib.RPE << std::endl;
 
 // --- Prepare output JSON ---
-json output_SSR = input_SSR;
-output_SSR["RPE"] = calib.RPE;
+// Build only the required keys and remove extras
+json output_SSR = json::object();
+output_SSR["Type"] = position;
+output_SSR["RegistrationType"] = input_SSR.value("RegistrationType", "2D2D");
+output_SSR["Version"] = "1.0";
+
+// CropRoi as array [xmin, ymin, xmax, ymax]
+output_SSR["CropRoi"] = { xmin, ymin, xmax, ymax };
+
+// TwoD_Points from computed platFid [x, y, label]
+output_SSR["TwoD_Points"] = json::array();
+for (const auto& point : platFid) {
+    if (point.size() >= 3) {
+        output_SSR["TwoD_Points"].push_back({ point[0], point[1], static_cast<int>(point[2]) });
+    }
+}
 
 if (calib.RPE < ERROR_UPPER_BOUND) {
     output_SSR["Status"] = "SUCCESS";
     output_SSR["ErrorMessage"] = "";
-    output_SSR["Result_Matrix"] = std::vector<std::vector<double>>(4, std::vector<double>(4));
+    output_SSR["RPE"] = calib.RPE;
 
+    output_SSR["Result_Matrix"] = std::vector<std::vector<double>>(4, std::vector<double>(4));
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j)
             output_SSR["Result_Matrix"][i][j] = calib.Result_Matrix(i, j);
 
+    output_SSR["UD_InPaint_Image"] = "Empty"; // Placeholder if not generated
     std::cout << "Calibration successful\n";
     std::cout << "Imageinpaint - (Not implemented yet)\n";
-
 } else {
     output_SSR["Status"] = "FAILURE";
     output_SSR["ErrorMessage"] = "Calibration failed";
-    output_SSR["TwoD_Points"]   = json::array();
-    output_SSR["UD_InPaint_Image"] = "Empty";
-    output_SSR["CropRoi"] = json::array();
     output_SSR["RPE"] = -1;
-
+    output_SSR["Result_Matrix"] = json::array();
     std::cout << "Calibration failed - Error exceeds threshold\n";
 }
 
-    
-    // Set additional output fields
-    output_SSR["Type"] = position;
-    output_SSR["RegistrationType"] = input_SSR.value("RegistrationType", "2D2D");
-    output_SSR["Version"] = "1.0";  // Set your version
-    
-    // Write output JSON file
-    std::string output_json_file = output_dir + "\\Output\\" + position + "\\output" + position + ".json";
-    
-    // Create directory if it doesn't exist
-    std::filesystem::create_directories(output_dir + "\\Output\\" + position);
-    
-    std::ofstream outputFile(output_json_file);
-    if (outputFile.is_open()) {
-        outputFile << output_SSR.dump(4);  // Pretty print with 4-space indentation
-        outputFile.close();
-        std::cout << "Output JSON saved to: " << output_json_file << std::endl;
-    } else {
-        std::cerr << "Failed to write output JSON file: " << output_json_file << std::endl;
-    }
+// Write output JSON file
+std::string output_json_file = output_dir + "\\Output\\" + position + "\\output" + position + ".json";
 
-    return 0;
+// Create directory if it doesn't exist
+std::filesystem::create_directories(output_dir + "\\Output\\" + position);
+
+std::ofstream outputFile(output_json_file);
+if (outputFile.is_open()) {
+    outputFile << output_SSR.dump(4);  // Pretty print with 4-space indentation
+    outputFile.close();
+    std::cout << "Output JSON saved to: " << output_json_file << std::endl;
+} else {
+    std::cerr << "Failed to write output JSON file: " << output_json_file << std::endl;
+}
+
+ auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+
+
+    std::cout << "Execution time: " << elapsed.count()/1000.0 << " s\n";
+return 0;
 }
