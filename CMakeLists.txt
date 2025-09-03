@@ -4,23 +4,20 @@ project(PDProject)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# --- Prefer static libraries ---
-set(BUILD_SHARED_LIBS OFF)
-set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
+# --- Linking mode ---
+# Prefer shared on MinGW to use import libs (DLLs). Static DCMTK rarely available on MSYS2.
+set(BUILD_SHARED_LIBS ON)
 
 # --- Compiler-specific runtime settings ---
 if(MSVC)
     # MSVC: Use static runtime (/MT or /MTd)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-else()
-    # GCC / Clang: Link standard library statically
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
 endif()
 
-# --- GDCM ---
-find_package(GDCM REQUIRED)
-include_directories(${GDCM_INCLUDE_DIRS})
-# Do NOT add -DGDCM_USE_DYNAMIC_LIBRARIES
+# --- DCMTK ---
+# Request components needed for color, JPEG, RLE decoding
+find_package(DCMTK REQUIRED COMPONENTS dcmimage dcmimgle dcmjpeg dcmdata ofstd oflog ijg8 ijg12 ijg16 dcmdjpeg)
+include_directories(${DCMTK_INCLUDE_DIRS})
 
 # --- OpenCV ---
 find_package(OpenCV REQUIRED)
@@ -36,6 +33,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 # --- Sources ---
 set(SOURCES
     src/maindcm.cpp
+    src/ImageInpaint.cpp
     src/Center_detection.cpp
     src/Outlier_angle.cpp
     src/S_F_B.cpp
@@ -54,28 +52,20 @@ set(SOURCES
 # --- Executable ---
 add_executable(main ${SOURCES})
 
-# --- Link static libraries ---
+# --- Link libraries ---
 target_link_libraries(main
     ${OpenCV_LIBS}
-    ${GDCM_LIBRARIES}
-    gdcmMSFF
-    gdcmCommon
-    gdcmDSED
+    ${DCMTK_LIBRARIES}
 )
 # --- Portable install (bundle DLLs from MSYS2 MinGW) ---
 include(GNUInstallDirs)
 install(TARGETS main RUNTIME DESTINATION .)
 
 if(WIN32)
-  # Run at install time, not configure time
   install(CODE [[
     include(BundleUtilities)
     set(BU_CHMOD_BUNDLE_ITEMS ON)
-    # Your DLLs location
     set(dirs "C:/msys64/mingw64/bin")
-    # Copy non-system DLLs next to main.exe
     fixup_bundle("${CMAKE_INSTALL_PREFIX}/main.exe" "" "${dirs}")
   ]])
 endif()
-
-

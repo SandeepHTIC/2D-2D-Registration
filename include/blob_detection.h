@@ -4,13 +4,11 @@
 #include <vector>
 #include <string>
 
-struct BlobDetectionResult {
-    std::vector<cv::KeyPoint> verifiedKeypoints;  // Final verified blobs
-    cv::Mat binaryBlobImage;                      // Binary mask of blobs
-    cv::Mat finalImage;                           // Image annotated with blobs
-    std::string finalImagePath;                   // Path to annotated image
-    std::string binaryBlobPath;                   // Path to binary image
-    std::string pixelCsvPath;                     // Path to pixel-level CSV
+struct BlobDetectionResult
+{
+    std::vector<cv::KeyPoint> verifiedKeypoints; // Final verified blobs
+    cv::Mat binaryBlobImage;                     // Binary mask of blobs
+    cv::Mat finalImage;                          // Image annotated with blobs
 };
 
 /**
@@ -22,10 +20,9 @@ struct BlobDetectionResult {
  * @return BlobDetectionResult struct with keypoints, images, paths.
  */
 BlobDetectionResult run_blob_detection(
-    const std::string& imgPath,
-    const std::string& outputDir,
-    float minInertiaRatio = -1.0f
-);
+    const std::string &imgPath,
+    const std::string &outputDir,
+    float minInertiaRatio = -1.0f);
 
 /**
  * @brief Run full fiducial/blob detection pipeline from cv::Mat input image.
@@ -36,7 +33,6 @@ BlobDetectionResult run_blob_detection(
  * @return BlobDetectionResult struct with keypoints, images, paths.
  */
 BlobDetectionResult run_blob_detection(
-    const cv::Mat& inputImage,
-    const std::string& outputDir,
-    float minInertiaRatio = -1.0f
-);
+    const cv::Mat &inputImage,
+    const std::string &outputDir,
+    float minInertiaRatio = -1.0f);

@@ -23,12 +23,7 @@ struct JsonCheckResult {
     std::string errorMessage;
 };
 
-// Exact logic parity with matlabcode/json_check.m where feasible.
-// - Validates JSON fields and types
-// - Ensures folders Output\\<position>\\{PD,DD,IP} exist (cleans position folder first)
-// - Ensures config.json exists (only presence check)
-// - On failure, writes Output\\output<position>.json with Failure metadata matching MATLAB keys
-// - Does not terminate the process, but sets ok=false and fills errorMessage
+
 JsonCheckResult json_check_cpp(const nlohmann::json& input_SSR, const std::string& otpath, const std::string& path_d);
 
 #endif // JSON_CHECK_H

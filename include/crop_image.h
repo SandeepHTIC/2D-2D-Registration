@@ -3,7 +3,8 @@
 
 #include <opencv2/opencv.hpp>
 
-class CropImage {
+class CropImage
+{
 public:
     /**
      * Crop the input image similar to MATLAB Crop_Image:
@@ -12,7 +13,7 @@ public:
      *  - Mask low-intensity areas
      *  - Find largest region
      *  - Expand bounding box by margin
-     * 
+     *
      * @param img_in Input single-channel CV_8U image
      * @param xmin Output: ROI xmin
      * @param ymin Output: ROI ymin
@@ -20,7 +21,7 @@ public:
      * @param ymax Output: ROI ymax
      * @return Cropped image
      */
-    static cv::Mat run(const cv::Mat& img_in, int& xmin, int& ymin, int& xmax, int& ymax);
+    static cv::Mat run(const cv::Mat &img_in, int &xmin, int &ymin, int &xmax, int &ymax);
 };
 
 #endif // CROP_IMAGE_H

@@ -3,11 +3,12 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
-cv::Mat CropImage::run(const cv::Mat& img_in, int& xmin, int& ymin, int& xmax, int& ymax) {
+cv::Mat CropImage::run(const cv::Mat &img_in, int &xmin, int &ymin, int &xmax, int &ymax)
+{
     cv::Mat img = img_in.clone();
     int col = img.cols;
     int row = img.rows;
-    int ch  = img.channels();
+    int ch = img.channels();
 
     // === Normalize to [0,1] like MATLAB rescale ===
     cv::Mat temp;
@@ -18,38 +19,57 @@ cv::Mat CropImage::run(const cv::Mat& img_in, int& xmin, int& ymin, int& xmax, i
 
     // === Diagonal white-strip check ===
     int i = 1;
-    if (temp.channels() == 1) {
-        if (temp.at<float>(0,0) >= 1.0f) {
-            for (int j = 0; j < std::min(row, col); ++j) {
-                if (temp.at<float>(j,j) == 0.0f) {
+    if (temp.channels() == 1)
+    {
+        if (temp.at<float>(0, 0) >= 1.0f)
+        {
+            for (int j = 0; j < std::min(row, col); ++j)
+            {
+                if (temp.at<float>(j, j) == 0.0f)
+                {
                     i = j; // MATLAB sets i=j
                     break;
                 }
             }
-        } else {
+        }
+        else
+        {
             i = 5;
         }
-    } else {
-        if (temp.at<cv::Vec3f>(0,0)[0] >= 1.0f) {
-            for (int j = 0; j < std::min(row, col); ++j) {
-                if (temp.at<cv::Vec3f>(j,j)[0] == 0.0f) {
+    }
+    else
+    {
+        if (temp.at<cv::Vec3f>(0, 0)[0] >= 1.0f)
+        {
+            for (int j = 0; j < std::min(row, col); ++j)
+            {
+                if (temp.at<cv::Vec3f>(j, j)[0] == 0.0f)
+                {
                     i = j; // MATLAB sets i=j
                     break;
                 }
             }
-        } else {
+        }
+        else
+        {
             i = 5;
         }
     }
 
     // === Remove white strip (all channels) ===
-    for (int y = 0; y < row; ++y) {
-        for (int x = 0; x < col; ++x) {
-            if (x < i || y < i || x > (col - i) || y > (row - i)) {
-                if (ch == 1) {
-                    img.at<uchar>(y,x) = 0;
-                } else {
-                    cv::Vec3b& pix = img.at<cv::Vec3b>(y,x);
+    for (int y = 0; y < row; ++y)
+    {
+        for (int x = 0; x < col; ++x)
+        {
+            if (x < i || y < i || x > (col - i) || y > (row - i))
+            {
+                if (ch == 1)
+                {
+                    img.at<uchar>(y, x) = 0;
+                }
+                else
+                {
+                    cv::Vec3b &pix = img.at<cv::Vec3b>(y, x);
                     pix[0] = pix[1] = pix[2] = 0;
                 }
             }
@@ -66,9 +86,12 @@ cv::Mat CropImage::run(const cv::Mat& img_in, int& xmin, int& ymin, int& xmax, i
 
     // === Ensure single-channel for thresholding ===
     cv::Mat gray;
-    if (changed.channels() > 1) {
+    if (changed.channels() > 1)
+    {
         cv::cvtColor(changed, gray, cv::COLOR_BGR2GRAY);
-    } else {
+    }
+    else
+    {
         gray = changed;
     }
 
@@ -80,7 +103,8 @@ cv::Mat CropImage::run(const cv::Mat& img_in, int& xmin, int& ymin, int& xmax, i
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(mask_u8, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-    if (contours.empty()) {
+    if (contours.empty())
+    {
         std::cerr << "[CropImage] No regions found!" << std::endl;
         xmin = ymin = xmax = ymax = 0;
         return img_in.clone();
@@ -88,9 +112,11 @@ cv::Mat CropImage::run(const cv::Mat& img_in, int& xmin, int& ymin, int& xmax, i
 
     double maxArea = 0;
     int index = 0;
-    for (size_t k = 0; k < contours.size(); ++k) {
+    for (size_t k = 0; k < contours.size(); ++k)
+    {
         double area = cv::contourArea(contours[k]);
-        if (area > maxArea) {
+        if (area > maxArea)
+        {
             maxArea = area;
             index = static_cast<int>(k);
         }

@@ -4,7 +4,6 @@
 #include <vector>
 
 std::pair<cv::Point2f, std::vector<cv::Point2f>> Center_detection(
-    const std::vector<cv::Point2f>& centroid,
+    const std::vector<cv::Point2f> &centroid,
     int r,
-    int c
-);
+    int c);
